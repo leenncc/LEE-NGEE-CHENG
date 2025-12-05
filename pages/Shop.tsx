@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getFinishedGoods, submitOnlineOrder, getRecipes } from '../services/sheetService';
 import { FinishedGood, Recipe } from '../types';
@@ -123,7 +122,7 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="h-full overflow-y-auto bg-slate-50 font-sans">
       <header className="bg-white sticky top-0 z-30 shadow-sm border-b border-slate-100">
           <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
               <div className="flex items-center text-earth-800">
