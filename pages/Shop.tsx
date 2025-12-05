@@ -45,6 +45,12 @@ export default function ShopPage() {
                 } else {
                     acc[key].quantity += curr.quantity;
                 }
+                
+                // FIX: Ensure image persists if one batch has it but the accumulated one (usually newer) didn't
+                if (curr.imageUrl && !acc[key].imageUrl) {
+                    acc[key].imageUrl = curr.imageUrl;
+                }
+                
                 return acc;
             }, {} as Record<string, FinishedGood>);
             setGoods(Object.values(grouped));
@@ -148,42 +154,48 @@ export default function ShopPage() {
               <div className="text-center py-20 text-slate-400">Loading fresh produce...</div>
           ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {goods.map((product, index) => (
-                      <div 
-                        key={index} 
-                        className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer"
-                        onClick={() => handleProductClick(product)}
-                      >
-                          <div className="h-48 bg-slate-200 relative overflow-hidden">
-                              {product.imageUrl ? (
-                                  <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={product.recipeName} />
-                              ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-slate-400"><Store size={40}/></div>
-                              )}
-                              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-slate-700 shadow-sm">
-                                  {product.quantity} left
+                  {goods.map((product, index) => {
+                      // Fallback: Check recipe for image if product doesn't have one
+                      const relatedRecipe = recipes.find(r => r.name === product.recipeName);
+                      const displayImage = product.imageUrl || relatedRecipe?.imageUrl;
+
+                      return (
+                          <div 
+                            key={index} 
+                            className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer"
+                            onClick={() => handleProductClick(product)}
+                          >
+                              <div className="h-48 bg-slate-200 relative overflow-hidden">
+                                  {displayImage ? (
+                                      <img src={displayImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={product.recipeName} />
+                                  ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-slate-400"><Store size={40}/></div>
+                                  )}
+                                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-slate-700 shadow-sm">
+                                      {product.quantity} left
+                                  </div>
+                                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded font-bold uppercase backdrop-blur-sm flex items-center">
+                                      <Info size={10} className="mr-1"/> Details
+                                  </div>
                               </div>
-                              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded font-bold uppercase backdrop-blur-sm flex items-center">
-                                  <Info size={10} className="mr-1"/> Details
+                              <div className="p-5">
+                                  <div className="mb-4">
+                                      <h3 className="font-bold text-lg text-slate-900 leading-tight mb-1">{product.recipeName}</h3>
+                                      <p className="text-sm text-slate-500 uppercase tracking-wider font-bold">{product.packagingType}</p>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                      <span className="text-xl font-black text-green-700">RM {product.sellingPrice.toFixed(2)}</span>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                                        className="bg-earth-800 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-earth-900 transition-colors shadow-sm"
+                                      >
+                                          Add to Cart
+                                      </button>
+                                  </div>
                               </div>
                           </div>
-                          <div className="p-5">
-                              <div className="mb-4">
-                                  <h3 className="font-bold text-lg text-slate-900 leading-tight mb-1">{product.recipeName}</h3>
-                                  <p className="text-sm text-slate-500 uppercase tracking-wider font-bold">{product.packagingType}</p>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                  <span className="text-xl font-black text-green-700">RM {product.sellingPrice.toFixed(2)}</span>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                                    className="bg-earth-800 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-earth-900 transition-colors shadow-sm"
-                                  >
-                                      Add to Cart
-                                  </button>
-                              </div>
-                          </div>
-                      </div>
-                  ))}
+                      );
+                  })}
                   {goods.length === 0 && (
                       <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
                           <p className="text-slate-500 text-lg">Everything is sold out! Check back later.</p>
@@ -200,11 +212,15 @@ export default function ShopPage() {
                   <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 z-10 p-2 bg-white/80 hover:bg-white rounded-full shadow-sm"><X size={20}/></button>
                   
                   <div className="h-64 bg-slate-200 relative">
-                      {selectedProduct.imageUrl ? (
-                          <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" />
-                      ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400"><Store size={48}/></div>
-                      )}
+                      {(() => {
+                         const relatedRecipe = recipes.find(r => r.name === selectedProduct.recipeName);
+                         const displayImage = selectedProduct.imageUrl || relatedRecipe?.imageUrl;
+                         return displayImage ? (
+                              <img src={displayImage} className="w-full h-full object-cover" />
+                          ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400"><Store size={48}/></div>
+                          );
+                      })()}
                   </div>
                   
                   <div className="p-6 overflow-y-auto">
@@ -261,10 +277,15 @@ export default function ShopPage() {
                       {cart.length === 0 ? (
                           <div className="text-center text-slate-400 py-10">Your basket is empty.</div>
                       ) : (
-                          cart.map((item, i) => (
+                          cart.map((item, i) => {
+                              // Display image logic for cart
+                              const relatedRecipe = recipes.find(r => r.name === item.item.recipeName);
+                              const displayImage = item.item.imageUrl || relatedRecipe?.imageUrl;
+                              
+                              return (
                               <div key={i} className="flex gap-4 border-b border-slate-50 pb-4 last:border-0">
                                   <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                                      {item.item.imageUrl && <img src={item.item.imageUrl} className="w-full h-full object-cover"/>}
+                                      {displayImage && <img src={displayImage} className="w-full h-full object-cover"/>}
                                   </div>
                                   <div className="flex-1">
                                       <h4 className="font-bold text-slate-800">{item.item.recipeName}</h4>
@@ -278,7 +299,7 @@ export default function ShopPage() {
                                       </div>
                                   </div>
                               </div>
-                          ))
+                          )})
                       )}
                   </div>
 
