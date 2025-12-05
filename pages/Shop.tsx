@@ -123,7 +123,7 @@ export default function ShopPage() {
               <div className="flex items-center text-earth-800">
                   <div className="bg-earth-100 p-2 rounded-lg mr-3"><Store size={24}/></div>
                   <div>
-                      <h1 className="font-bold text-lg leading-tight">Village Co-op</h1>
+                      <h1 className="font-bold text-lg leading-tight">Double Good Farming</h1>
                       <p className="text-xs text-slate-500">Fresh from the Farm</p>
                   </div>
               </div>
