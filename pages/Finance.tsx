@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { 
     getFinishedGoods, getInventory, getPurchaseOrders, createPurchaseOrder, 
@@ -290,7 +291,7 @@ const FinancePage: React.FC<FinanceProps> = ({ allowedTabs = ['procurement', 'sa
   const handleDeleteSupplier = async (id: string) => { if (window.confirm("Remove?")) { await deleteSupplier(id); refreshData(); } };
   const handlePrint = () => setTimeout(() => alert("Printing..."), 500);
   const handleOpenDocument = (sale: SalesRecord, type: DocumentType) => { setSelectedSale(sale); setViewDocType(type); };
-  const handleUpdateRate = () => { setLaborRate(laborRate); setShowRateModal(false); refreshData(); };
+  const handleUpdateRate = () => { setLaborRate(laborRate); setRawMaterialRate(rawRate); setShowRateModal(false); refreshData(); };
   const handleEditCostClick = (cost: DailyCostMetrics) => { setEditingCost({ ...cost }); setShowEditCostModal(true); };
 
   // Calculations
@@ -389,24 +390,44 @@ const FinancePage: React.FC<FinanceProps> = ({ allowedTabs = ['procurement', 'sa
                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 space-y-3">
                      <h4 className="text-xs font-bold text-slate-400 uppercase">Add Item</h4>
                      <div>
-                        <select className="w-full p-2 border rounded-lg bg-white mb-2" value={salesGood} onChange={e => setSalesGood(e.target.value)}>
+                        <select className="w-full p-2 border rounded-lg bg-white mb-2 font-medium text-slate-700 focus:ring-2 focus:ring-nature-500 outline-none" value={salesGood} onChange={e => setSalesGood(e.target.value)}>
                             <option value="">Select Product...</option>
                             {Object.values(availableGoods).map((g: any) => (
                                 <option key={g.key} value={g.key}>{g.label} (Stock: {g.totalQty})</option>
                             ))}
                         </select>
-                        <div className="flex gap-2">
-                            <input type="number" min="1" className="flex-1 p-2 border rounded-lg" value={salesQty} onChange={e => setSalesQty(e.target.value)} placeholder="Qty" />
-                            <input 
-                                type="number" 
-                                step="0.01" 
-                                className="flex-1 p-2 border rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed" 
-                                value={salesPrice} 
-                                readOnly 
-                                placeholder="Price" 
-                                title="Price is managed in Inventory"
-                            />
-                            <button onClick={handleAddToCart} className="px-4 bg-earth-700 text-white rounded-lg font-bold hover:bg-earth-800">Add</button>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className="w-20 shrink-0">
+                                <label className="sr-only">Quantity</label>
+                                <input 
+                                    type="number" 
+                                    min="1" 
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-nature-500 outline-none text-center font-bold text-slate-700 placeholder-slate-400" 
+                                    value={salesQty} 
+                                    onChange={e => setSalesQty(e.target.value)} 
+                                    placeholder="1" 
+                                />
+                            </div>
+
+                            <div className="flex-1 relative">
+                                <label className="sr-only">Price</label>
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">RM</div>
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    className="w-full pl-9 p-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 font-bold cursor-not-allowed outline-none" 
+                                    value={salesPrice} 
+                                    readOnly 
+                                    placeholder="0.00" 
+                                />
+                            </div>
+
+                            <button 
+                                onClick={handleAddToCart} 
+                                className="shrink-0 h-[42px] px-4 bg-earth-800 text-white rounded-lg font-bold hover:bg-earth-900 shadow-sm flex items-center justify-center transition-colors"
+                            >
+                                Add
+                            </button>
                         </div>
                      </div>
                  </div>
