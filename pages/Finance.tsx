@@ -10,7 +10,7 @@ import {
     getMonthlyBudget, setMonthlyBudget 
 } from '../services/sheetService';
 import { InventoryItem, PurchaseOrder, Customer, FinishedGood, SalesRecord, DailyCostMetrics, Supplier, SalesStatus, Budget } from '../types';
-import { ShoppingCart, AlertTriangle, CheckCircle2, Truck, Plus, Trash2, Building2, TrendingUp, PieChart, Store, FileText, Send, Printer, User, Pencil, Clock, Sprout, FileClock, PackageCheck, Receipt, Loader2, Target, ChevronDown, ChevronUp, X, Settings, ShoppingBag } from 'lucide-react';
+import { ShoppingCart, AlertTriangle, CheckCircle2, Truck, Plus, Trash2, Building2, TrendingUp, PieChart, Store, FileText, Send, Printer, User, Pencil, Clock, Sprout, FileClock, PackageCheck, Receipt, Loader2, Target, ChevronDown, ChevronUp, X, Settings, ShoppingBag, RefreshCw, Wallet, XCircle } from 'lucide-react';
 
 interface FinanceProps {
   allowedTabs?: string[]; 
@@ -48,7 +48,6 @@ const FinancePage: React.FC<FinanceProps> = ({ allowedTabs = ['procurement', 'sa
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showQCModal, setShowQCModal] = useState<string | null>(null);
   const [showComplaintModal, setShowComplaintModal] = useState<string | null>(null);
-  const [showResolutionModal, setShowResolutionModal] = useState<string | null>(null);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [viewDocType, setViewDocType] = useState<DocumentType>('INVOICE');
   const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -286,7 +285,12 @@ const FinancePage: React.FC<FinanceProps> = ({ allowedTabs = ['procurement', 'sa
   
   const handleQC = async (passed: boolean) => { if (showQCModal) { if (passed) { await receivePurchaseOrder(showQCModal, true); setShowQCModal(null); } else { setShowComplaintModal(showQCModal); setShowQCModal(null); } refreshData(); } };
   const handleSubmitComplaint = async () => { if (showComplaintModal && complaintReason) { await complaintPurchaseOrder(showComplaintModal, complaintReason); setShowComplaintModal(null); setComplaintReason(''); refreshData(); } };
-  const handleResolveComplaint = async (resolution: string) => { if (showResolutionModal) { await resolveComplaint(showResolutionModal, resolution); setShowResolutionModal(null); refreshData(); } };
+  
+  // Updated: Direct call to resolve without using modal state
+  const handleResolveComplaint = async (poId: string, resolution: string) => {
+      await resolveComplaint(poId, resolution);
+      refreshData();
+  };
   
   const handleDeleteSupplier = async (id: string) => { if (window.confirm("Remove?")) { await deleteSupplier(id); refreshData(); } };
   const handlePrint = () => setTimeout(() => alert("Printing..."), 500);
@@ -353,12 +357,62 @@ const FinancePage: React.FC<FinanceProps> = ({ allowedTabs = ['procurement', 'sa
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-4">
                  <div className="flex justify-between items-center"><h3 className="font-bold text-slate-700">Active Orders</h3><div className="flex space-x-2"><button onClick={() => setShowSupplierModal(true)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-bold flex items-center hover:bg-slate-200"><Building2 size={18} className="mr-2"/> Manage Suppliers</button><button onClick={() => setShowOrderModal(true)} className="px-4 py-2 bg-earth-800 text-white rounded-lg font-bold flex items-center shadow-lg hover:bg-earth-900"><ShoppingCart size={18} className="mr-2"/> New Order</button></div></div>
+                 
+                 {/* Active Order List */}
                  {purchaseOrders.filter(p => p.status === 'ORDERED').map(po => (
                      <div key={po.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
                         <div><div className="flex items-center space-x-2"><span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">{po.supplier}</span><span className="text-xs text-slate-400">{new Date(po.dateOrdered).toLocaleDateString()}</span></div><h4 className="font-bold text-slate-800">{po.itemName}</h4><p className="text-sm text-slate-600">{po.quantity} packs ({po.totalUnits} units) • RM {po.totalCost.toFixed(2)}</p></div>
                         <button onClick={() => setShowQCModal(po.id)} className="px-3 py-2 bg-green-600 text-white rounded-lg font-bold text-xs hover:bg-green-700 shadow">Received</button>
                      </div>
                  ))}
+                 
+                 {/* No active orders placeholder */}
+                 {purchaseOrders.filter(p => p.status === 'ORDERED').length === 0 && (
+                     <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl">
+                        <p className="text-slate-400 text-sm">No pending orders.</p>
+                     </div>
+                 )}
+
+                 {/* PENDING COMPLAINTS SECTION */}
+                 {purchaseOrders.some(p => p.status === 'COMPLAINT') && (
+                     <div className="mt-8 animate-in slide-in-from-bottom duration-500">
+                        <div className="flex items-center space-x-2 mb-3">
+                            <AlertTriangle className="text-red-600" size={20} />
+                            <h3 className="font-bold text-red-800">Pending Complaints</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {purchaseOrders.filter(p => p.status === 'COMPLAINT').map(po => (
+                                <div key={po.id} className="bg-red-50 p-4 rounded-xl border border-red-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center space-x-2 mb-1">
+                                            <span className="text-xs font-bold bg-white text-slate-600 px-2 py-0.5 rounded border border-red-100 uppercase">{po.supplier}</span>
+                                            <span className="text-xs text-red-400 font-mono">#{po.id}</span>
+                                        </div>
+                                        <h4 className="font-bold text-red-900">{po.itemName}</h4>
+                                        <p className="text-xs text-red-700 mt-1 font-medium bg-red-100/50 p-2 rounded inline-block">
+                                            Issue: {po.complaintReason || 'Unspecified Error'}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2 w-full md:w-auto">
+                                        <button 
+                                            onClick={() => handleResolveComplaint(po.id, 'Replacement Received')} 
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white border border-green-200 text-green-700 font-bold rounded-lg hover:bg-green-50 shadow-sm flex items-center justify-center"
+                                        >
+                                            <RefreshCw size={16} className="mr-2"/> Replacement
+                                        </button>
+                                        <button 
+                                            onClick={() => handleResolveComplaint(po.id, 'Refunded')} 
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 shadow-sm flex items-center justify-center"
+                                        >
+                                            <Wallet size={16} className="mr-2"/> Refund
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                     </div>
+                 )}
+
               </div>
               <div className="space-y-6">
                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
